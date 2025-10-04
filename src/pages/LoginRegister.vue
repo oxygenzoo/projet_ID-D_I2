@@ -9,6 +9,9 @@
           : "Créez un compte pour rejoindre Agora CRM" }}
       </p>
 
+      <!-- Message d'erreur -->
+      <p v-if="error" class="error">{{ error }}</p>
+
       <!-- Formulaire -->
       <form @submit.prevent="handleSubmit">
         <!-- Inscription = pseudo + email + mdp -->
@@ -21,7 +24,7 @@
         <input type="email" id="email" v-model="form.email" required />
 
         <label for="password">Mot de passe</label>
-        <input type="password" id="password" v-model="form.password" required />
+        <input type="password" id="password" v-model="form.password" required minlength="6"/>
 
         <!-- Inscription = rôle -->
         <div v-if="!isLogin">
@@ -33,8 +36,8 @@
         </div>
 
         <!-- Bouton -->
-        <button type="submit" class="btn-primary">
-          {{ isLogin ? "Se connecter" : "S'inscrire" }}
+        <button type="submit" class="btn-primary" :disabled="loading">
+          {{ loading ? "Chargement..." : isLogin ? "Se connecter" : "S'inscrire" }}
         </button>
       </form>
 
@@ -50,27 +53,83 @@
 </template>
 
 <script>
+import { supabase } from '../lib/supabase'
+
 export default {
-  name: "LoginRegister",
+  name: 'LoginRegister',
   data() {
     return {
-      isLogin: true, // mode par défaut = connexion
+      isLogin: true,
+      loading: false,
+      error: '',
       form: {
-        name: "",
-        email: "",
-        password: "",
-        role: "adherent"
+        name: '',
+        email: '',
+        password: '',
+        role: 'adherent'
       }
     }
   },
   methods: {
-    handleSubmit() {
-      if (this.isLogin) {
-        console.log("Tentative de connexion :", this.form.email, this.form.password)
-        // ⚡ Ici tu mettras plus tard la requête vers Supabase / backend
-      } else {
-        console.log("Tentative d'inscription :", this.form)
-        // ⚡ Ici aussi, backend / supabase
+    async handleSubmit() {
+      this.error = ''
+      this.loading = true
+      try {
+        // Vérif basique côté client
+        if (!this.form.email || !this.form.password) {
+          throw new Error("Veuillez remplir tous les champs.")
+        }
+        if (!this.isLogin && this.form.password.length < 6) {
+          throw new Error("Le mot de passe doit contenir au moins 6 caractères.")
+        }
+
+        if (this.isLogin) {
+          // ✅ Connexion
+          const { data, error } = await supabase.auth.signInWithPassword({
+            email: this.form.email,
+            password: this.form.password
+          })
+          if (error) throw error
+
+          localStorage.setItem("user", JSON.stringify({
+            id: data.user.id,
+            email: data.user.email,
+            role: data.user.user_metadata?.role || "adherent"
+          }))
+
+          this.$router.push("/")
+        } else {
+          // ✅ Inscription
+          const { data, error } = await supabase.auth.signUp({
+            email: this.form.email,
+            password: this.form.password,
+            options: {
+              data: { full_name: this.form.name, role: this.form.role }
+            }
+          })
+          if (error) throw error
+
+          // Stocker profil dans une table `profiles` (optionnel)
+          if (data.user) {
+            await supabase.from('profiles').insert({
+              id: data.user.id,
+              full_name: this.form.name,
+              role: this.form.role
+            })
+          }
+
+          localStorage.setItem("user", JSON.stringify({
+            id: data.user.id,
+            email: data.user.email,
+            role: this.form.role
+          }))
+
+          this.$router.push("/")
+        }
+      } catch (e) {
+        this.error = e.message
+      } finally {
+        this.loading = false
       }
     }
   }
@@ -82,10 +141,9 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: calc(100vh - 70px); /* enlève la hauteur navbar */
+  min-height: calc(100vh - 70px);
   background: #f3f4f6;
 }
-
 .auth-card {
   background: white;
   padding: 2.5rem;
@@ -95,42 +153,20 @@ export default {
   width: 100%;
   text-align: center;
 }
-
-.auth-card h1 {
-  margin-bottom: 0.5rem;
-  color: #1e3a8a;
-}
-
-.auth-card p {
-  margin-bottom: 1.5rem;
-  color: #4b5563;
-}
-
-form {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  text-align: left;
-}
-
-label {
-  font-weight: 500;
-  color: #374151;
-  font-size: 0.9rem;
-}
-
+.auth-card h1 { margin-bottom: 0.5rem; color: #1e3a8a; }
+.auth-card p { margin-bottom: 1.5rem; color: #4b5563; }
+form { display: flex; flex-direction: column; gap: 1rem; text-align: left; }
+label { font-weight: 500; color: #374151; font-size: 0.9rem; }
 input, select {
   padding: 0.6rem;
   border: 1px solid #d1d5db;
   border-radius: 6px;
   outline: none;
 }
-
 input:focus, select:focus {
   border-color: #2563eb;
   box-shadow: 0 0 0 2px rgba(37,99,235,0.2);
 }
-
 .btn-primary {
   background: #2563eb;
   color: white;
@@ -140,19 +176,8 @@ input:focus, select:focus {
   cursor: pointer;
   font-weight: bold;
 }
-
-.btn-primary:hover {
-  background: #1d4ed8;
-}
-
-.switch {
-  margin-top: 1rem;
-  font-size: 0.9rem;
-}
-
-.switch a {
-  color: #2563eb;
-  font-weight: bold;
-  cursor: pointer;
-}
+.btn-primary:hover { background: #1d4ed8; }
+.switch { margin-top: 1rem; font-size: 0.9rem; }
+.switch a { color: #2563eb; font-weight: bold; cursor: pointer; }
+.error { color: #dc2626; margin-bottom: 1rem; }
 </style>

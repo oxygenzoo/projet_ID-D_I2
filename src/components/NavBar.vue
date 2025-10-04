@@ -37,8 +37,9 @@
 
         <!-- Adhérent -->
         <template v-if="user.role === 'adherent'">
-          <router-link to="/cotisations">Mes cotisations</router-link>
-          <router-link to="/evenements">Événements</router-link>
+            <router-link to="/adherent/dashboard">Mon tableau de bord</router-link>
+            <router-link to="/cotisations">Mes cotisations</router-link>
+            <router-link to="/evenements">Événements</router-link>
         </template>
       </nav>
 

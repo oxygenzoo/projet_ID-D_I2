@@ -7,28 +7,57 @@
 </template>
 
 <script>
-import Navbar from './components/NavBar.vue'
+import { supabase } from './lib/supabase'
+import Navbar from './components/Navbar.vue'
 
 export default {
-  name: "App",
+  name: 'App',
   components: { Navbar },
   data() {
     return {
       user: {
         isLoggedIn: false,
-        role: "guest" // guest | admin | association | adherent
+        role: 'guest',
+        email: null,
+        fullName: null
       }
     }
   },
+  created() {
+    this.initAuth()
+  },
   methods: {
-    toggleAuth() {
-      if (this.user.isLoggedIn) {
-        this.user = { isLoggedIn: false, role: "guest" }
+    async initAuth() {
+      const { data: { session } } = await supabase.auth.getSession()
+      this.applySession(session)
+
+      supabase.auth.onAuthStateChange((_, session) => {
+        this.applySession(session)
+      })
+    },
+    async applySession(session) {
+      if (session?.user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('full_name, role')
+          .eq('id', session.user.id)
+          .single()
+
+        this.user = {
+          isLoggedIn: true,
+          role: profile?.role || 'adherent',
+          email: session.user.email,
+          fullName: profile?.full_name || ''
+        }
       } else {
-        // Pour tester : connexion en admin par défaut
-        this.user = { isLoggedIn: true, role: "admin" }
+        this.user = { isLoggedIn: false, role: 'guest', email: null, fullName: null }
       }
+    },
+    async logout() {
+      await supabase.auth.signOut()
+      this.$router.push('/')
     }
   }
 }
 </script>
+
