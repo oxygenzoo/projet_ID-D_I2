@@ -14,7 +14,7 @@
 
 <script>
 import { supabase } from './lib/supabase'
-import Navbar from '@/components/Navbar.vue'
+import Navbar from './components/Navbar.vue'
 import Footer from './components/Footer.vue'
 import GlobalLoader from './components/GlobalLoader.vue'
 import { globalState, globalActions } from './store/useGlobal.js'

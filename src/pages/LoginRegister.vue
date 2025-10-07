@@ -36,6 +36,7 @@
           <select id="role" v-model="form.role">
             <option value="adherent">Adhérent</option>
             <option value="association">Association</option>
+            <option value="admin">admin</option>
           </select>
         </div>
 
