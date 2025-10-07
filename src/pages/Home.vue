@@ -42,16 +42,79 @@
       </p>
     </section>
 
-    <!-- Footer -->
-    <footer class="footer">
-      <p>© 2025 Agora CRM – Projet étudiant EFREI</p>
-    </footer>
+    <!-- Nouvelles des associations -->
+    <section class="news">
+      <h2>Les associations les plus suivies vous donnent des nouvelles</h2>
+
+      <!-- État : chargement -->
+      <div v-if="loading" class="state">
+        <div class="spinner"></div>
+        <p>Chargement des actualités...</p>
+      </div>
+
+      <!-- État : erreur -->
+      <div v-else-if="error" class="state error">
+        <p>Erreur : {{ error }}</p>
+        <button class="btn" @click="fetchNews">Réessayer</button>
+      </div>
+
+      <!-- État : vide -->
+      <div v-else-if="!news.length" class="state empty">
+        <p>Aucune actualité disponible pour le moment.</p>
+      </div>
+
+      <!-- État : succès -->
+      <div v-else class="news-grid">
+        <div v-for="article in news" :key="article.id" class="news-card">
+          <h3>{{ article.title }}</h3>
+          <p>{{ article.body }}</p>
+          <small class="muted">Publié récemment</small>
+        </div>
+      </div>
+    </section>
   </div>
 </template>
 
 <script>
+import { ref, onMounted } from 'vue'
+import { globalActions } from '@/store/useGlobal'
+
 export default {
-  name: "Home"
+  name: "Home",
+  setup() {
+    const news = ref([])
+    const loading = ref(false)
+    const error = ref('')
+
+    async function fetchNews() {
+      try {
+        loading.value = true
+        error.value = ''
+        globalActions.setLoading(true)
+
+        // 🔄 NOUVELLE API : Associations et ONG
+        const res = await fetch('https://api.publicapis.org/entries') // sans filtre
+        if (!res.ok) throw new Error('Erreur HTTP ' + res.status)
+        const { entries } = await res.json()
+
+        // On garde les 4 premières pour l’affichage
+        news.value = entries.slice(0, 4).map(entry => ({
+          title: entry.API,
+          description: entry.Description,
+          link: entry.Link
+        }))
+      } catch (e) {
+        error.value = e.message || 'Impossible de charger les actualités.'
+      } finally {
+        loading.value = false
+        globalActions.setLoading(false)
+      }
+    }
+
+    onMounted(fetchNews)
+
+    return { news, loading, error, fetchNews }
+  }
 }
 </script>
 
@@ -98,20 +161,14 @@ export default {
   background: #2563eb;
   color: white;
 }
-
-.btn-primary:hover {
-  background: #1d4ed8;
-}
+.btn-primary:hover { background: #1d4ed8; }
 
 .btn-secondary {
   background: white;
   border: 2px solid #2563eb;
   color: #2563eb;
 }
-
-.btn-secondary:hover {
-  background: #e0e7ff;
-}
+.btn-secondary:hover { background: #e0e7ff; }
 
 /* Features */
 .features {
@@ -119,19 +176,16 @@ export default {
   padding: 3rem 2rem;
   background: white;
 }
-
 .features h2 {
   font-size: 1.8rem;
   margin-bottom: 2rem;
   color: #1e40af;
 }
-
 .features-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
   gap: 1.5rem;
 }
-
 .feature-card {
   background: #f9fafb;
   padding: 2rem;
@@ -139,7 +193,6 @@ export default {
   box-shadow: 0 2px 8px rgba(0,0,0,0.05);
   text-align: center;
 }
-
 .feature-card h3 {
   margin-bottom: 0.5rem;
   color: #2563eb;
@@ -151,19 +204,85 @@ export default {
   padding: 3rem 2rem;
   background: #f3f4f6;
 }
-
 .why h2 {
   font-size: 1.8rem;
   margin-bottom: 1rem;
   color: #1e40af;
 }
-
 .why p {
   font-size: 1.1rem;
   max-width: 600px;
   margin: 0 auto;
   color: #374151;
 }
+
+/* --- Actus Section --- */
+.news {
+  text-align: center;
+  padding: 3rem 2rem;
+  background: #fff;
+}
+.news h2 {
+  font-size: 1.8rem;
+  margin-bottom: 2rem;
+  color: #1e3a8a;
+}
+
+.news-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+}
+.news-card {
+  background: #f9fafb;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  text-align: left;
+}
+.news-card h3 {
+  color: #2563eb;
+  margin: 0 0 0.5rem;
+}
+.news-card p {
+  color: #374151;
+  font-size: .95rem;
+  margin-bottom: 0.5rem;
+}
+.muted {
+  color: #6b7280;
+  font-size: 0.85rem;
+}
+
+/* États */
+.state {
+  text-align: center;
+  color: #4b5563;
+  padding: 2rem 0;
+}
+.state.error { color: #dc2626; }
+.state.empty { color: #6b7280; }
+
+.spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid #e5e7eb;
+  border-top: 3px solid #2563eb;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 1rem;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.btn {
+  background: #2563eb;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 0.6rem 1.2rem;
+  cursor: pointer;
+}
+.btn:hover { background: #1d4ed8; }
 
 /* Footer */
 .footer {

@@ -1,185 +1,252 @@
 <template>
-  <header class="navbar">
-    <div class="nav-container">
-      <!-- Logo cliquable -->
-      <div class="nav-left">
-        <img 
-          src="../assets/logo/logo_complet.png" 
-          alt="Logo" 
-          height="30" 
-          class="logo" 
-          @click="goHome" 
-        />
+  <header class="nav">
+    <div class="nav-wrap">
+      <!-- Logo -->
+      <div class="brand" @click="goHome">
+        <img src="../assets/logo/logo_complet.png" class="brand-logo" alt="Agora" />
       </div>
 
-      <!-- Bouton hamburger (mobile) -->
-      <button class="hamburger" @click="isOpen = !isOpen">☰</button>
+      <!-- Liens desktop -->
+      <nav class="center desktop-only">
+        <router-link class="nav-link" to="/">Accueil</router-link>
+        <router-link class="nav-link" to="/propos">A propos</router-link>
 
-      <!-- Liens au centre -->
-      <nav :class="['nav-links', { open: isOpen }]">
-        <!-- Invité (guest) -->
-        <router-link v-if="user.role === 'guest'" to="/">Accueil</router-link>
+        <router-link v-if="role==='admin'" class="nav-link" to="/admin/dashboard">Dashboard</router-link>
+        <router-link v-if="role==='admin'" class="nav-link" to="/admin/adherents">Adhérents</router-link>
+        <router-link v-if="role==='admin'" class="nav-link" to="/admin/association">Association</router-link>
 
-        <!-- Admin -->
-        <template v-if="user.role === 'admin'">
-          <router-link to="/dashboard">Dashboard</router-link>
-          <router-link to="/adherents">Adhérents</router-link>
-          <router-link to="/cotisations">Cotisations</router-link>
-          <router-link to="/evenements">Événements</router-link>
-        </template>
+        <router-link v-else-if="role==='association'" class="nav-link" to="/association/dashboard">Dashboard</router-link>
 
-        <!-- Association -->
-        <template v-if="user.role === 'association'">
-          <router-link to="/dashboard">Dashboard</router-link>
-          <router-link to="/adherents">Adhérents</router-link>
-          <router-link to="/evenements">Événements</router-link>
-        </template>
-
-        <!-- Adhérent -->
-        <template v-if="user.role === 'adherent'">
-            <router-link to="/adherent/dashboard">Mon tableau de bord</router-link>
-            <router-link to="/cotisations">Mes cotisations</router-link>
-            <router-link to="/evenements">Événements</router-link>
-        </template>
+        <router-link v-else-if="role==='adherent'" class="nav-link" to="/adherent/dashboard">Dashboard</router-link>
+        <router-link v-if="role==='adherent'" class="nav-link" to="/adherent/cotisations">Mes cotisations</router-link>
+        <router-link v-if="role==='adherent'" class="nav-link" to="/adherent/evenements">Mes Evenements</router-link>
       </nav>
 
-      <!-- Bouton à droite -->
-      <!-- Bouton à droite -->
-        <div class="nav-right">
-        <button v-if="!user.isLoggedIn" @click="goLogin">
-            Connexion
-        </button>
-        <button v-else @click="$emit('toggle-auth')">
-            Déconnexion
-        </button>
-        </div>
+      <!-- Bouton connexion / déconnexion -->
+      <div class="right desktop-only">
+        <span v-if="isLoggedIn" class="hello">👋 {{ firstName }}</span>
+        <button v-if="isLoggedIn" class="btn" @click="emitLogout">Déconnexion</button>
+        <button v-else class="btn" @click="goLogin">Connexion</button>
+      </div>
+
+      <!-- Burger -->
+      <button class="burger mobile-only" @click="toggleMenu">
+        <span v-if="!isOpen">☰</span>
+        <span v-else>✕</span>
+      </button>
     </div>
+
+    <!-- Menu mobile plein écran -->
+    <transition name="fade">
+      <div v-if="isOpen" class="mobile-menu">
+        <div class="mobile-header">
+          <img src="../assets/logo/logo_complet.png" class="brand-logo" alt="Agora" @click="goHome" />
+          <button class="close" @click="closeMenu">✕</button>
+        </div>
+
+        <nav class="mobile-links">
+          <router-link class="nav-link" to="/">Accueil</router-link>
+          <router-link class="nav-link" to="/propos">A propos</router-link>
+
+          <router-link v-if="role==='admin'" class="nav-link" to="/admin/dashboard">Dashboard</router-link>
+          <router-link v-if="role==='admin'" class="nav-link" to="/admin/adherents">Adhérents</router-link>
+          <router-link v-if="role==='admin'" class="nav-link" to="/admin/association">Association</router-link>
+
+          <router-link v-else-if="role==='association'" class="nav-link" to="/association/dashboard">Dashboard</router-link>
+
+          <router-link v-else-if="role==='adherent'" class="nav-link" to="/adherent/dashboard">Dashboard</router-link>
+          <router-link v-if="role==='adherent'" class="nav-link" to="/adherent/cotisations">Mes cotisations</router-link>
+          <router-link v-if="role==='adherent'" class="nav-link" to="/adherent/evenements">Mes Evenements</router-link>
+        </nav>
+
+        <div class="mobile-actions">
+          <div v-if="isLoggedIn" class="hello big">👋 Bonjour {{ firstName }}</div>
+          <button v-if="isLoggedIn" class="btn big" @click="emitLogout">Déconnexion</button>
+          <button v-else class="btn big" @click="goLogin">Connexion</button>
+        </div>
+      </div>
+    </transition>
   </header>
 </template>
 
 <script>
+import { globalState } from '@/store/useGlobal.js'
+
 export default {
-  name: "Navbar",
-  props: {
-    user: Object
-  },
-  data() {
-    return {
-      isOpen: false
-    }
-  },
-  methods: {
-    goHome() {
-        this.$router.push("/") // retour accueil
+  name: 'Navbar',
+  props: { user: Object },
+  data: () => ({ isOpen: false }),
+  computed: {
+    isLoggedIn() {
+      return this.user?.isLoggedIn || globalState.user !== null
     },
-    goLogin() {
-        this.$router.push("/login") // envoie vers /login
+    role() {
+      return this.user?.role || globalState.user?.role || 'guest'
+    },
+    firstName() {
+      const n = this.user?.fullName || globalState.user?.full_name || ''
+      return n ? n.split(' ')[0] : ''
     }
-}
+  },
+  watch: { $route() { this.closeMenu() } },
+  methods: {
+    toggleMenu() {
+      this.isOpen = !this.isOpen
+      document.body.style.overflow = this.isOpen ? 'hidden' : 'auto'
+    },
+    closeMenu() {
+      this.isOpen = false
+      document.body.style.overflow = 'auto'
+    },
+    goHome() { this.$router.push('/') },
+    goLogin() { this.$router.push('/login') },
+    emitLogout() {
+      this.$emit('logout')
+      this.closeMenu()
+    }
+  }
 }
 </script>
 
 <style>
-/* --- Styles de la navbar --- */
-.navbar {
-  background: #2563EB;
-  color: white;
-  padding: 0.8rem 1.5rem;
+:root {
+  --nav-bg: #1f3c8f;
+  --nav-fg: #fff;
+  --nav-fg-light: #dbeafe;
 }
 
-.nav-container {
+.nav {
+  background: var(--nav-bg);
+  color: var(--nav-fg);
+  position: sticky;
+  top: 0;
+  z-index: 999;
+}
+
+.nav-wrap {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  padding: 0 2rem;
+  height: 70px;
+  max-width: 1280px;
+  margin: auto;
 }
 
-.logo {
+.brand { display: flex; align-items: center; cursor: pointer; }
+.brand-logo { height: 34px; }
+
+.center {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 24px;
+}
+
+.nav-link {
+  color: var(--nav-fg);
+  text-decoration: none;
+  font-weight: 700;
+}
+.nav-link:hover { color: var(--nav-fg-light); }
+
+.right {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.btn {
+  background: white;
+  color: var(--nav-bg);
+  border: none;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-weight: 600;
   cursor: pointer;
+  line-height: 1;
+}
+.btn:hover { background: #f3f4f6; }
+
+.hello { font-weight: 600; color: var(--nav-fg-light); }
+
+.burger {
+  background: none;
+  border: none;
+  font-size: 26px;
+  color: white;
+  cursor: pointer;
+  width: 44px;
+  height: 44px;
+  display: none;
+  align-items: center;
+  justify-content: center;
 }
 
-/* Hamburger (mobile) */
-.hamburger {
+/* ===== Menu mobile ===== */
+.mobile-menu {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: var(--nav-bg);
+  display: flex;
+  flex-direction: column;
+  z-index: 2000;
+}
+
+.mobile-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 70px;
+  padding: 0 1.5rem;
+}
+
+.mobile-links {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+}
+
+.mobile-link {
+  color: white;
+  font-weight: 700;
+  font-size: 1.2rem;
+  text-decoration: none;
+}
+
+.mobile-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding-bottom: 2rem;
+}
+.big { font-size: 1.05rem; }
+
+.close {
   background: none;
   border: none;
   color: white;
-  font-size: 1.5rem;
-  display: none;
+  font-size: 28px;
   cursor: pointer;
+  width: 44px;
+  height: 44px;
 }
 
-/* Liens au centre */
-.nav-links {
-  display: flex;
-  gap: 2rem;
-  align-items: center;
-  justify-content: center;
-  flex: 1;
-}
+.fade-enter-active, .fade-leave-active { transition: opacity 0.2s ease; }
+.fade-enter-from, .fade-leave-to { opacity: 0; }
 
-/* Style des liens */
-.nav-links a {
-  text-decoration: none;
-  color: white;
-  font-weight: 500;
-  transition: color 0.3s ease;
-}
+.desktop-only { display: flex; }
+.mobile-only { display: none; }
 
-.nav-links a:hover {
-  color: #dbeafe; /* bleu clair au hover */
-}
-
-/* On supprime le soulignement actif */
-.nav-links a.router-link-exact-active {
-  text-decoration: none;
-  font-weight: 600;
-}
-
-/* Bouton à droite */
-.nav-right button {
-  background: white;
-  color: #2563EB;
-  border: none;
-  padding: 0.4rem 1rem;
-  border-radius: 6px;
-  cursor: pointer;
-  font-weight: bold;
-}
-
-.nav-right button:hover {
-  background: #f3f4f6;
-}
-
-/* --- Responsive --- */
-@media (max-width: 768px) {
-  .hamburger {
-    display: block;
-  }
-
-  .nav-links {
-    display: none;
-    flex-direction: column;
-    background: #1d4ed8;
-    position: absolute;
-    top: 60px;
-    left: 0;
-    right: 0;
-    padding: 1rem;
-  }
-
-  .nav-links.open {
-    display: flex;
-  }
-
-  .nav-links a {
-    margin: 0.5rem 0;
-  }
-
-  .nav-right {
-    display: none; /* en mobile, tu pourrais mettre Connexion dans le menu */
-  }
-
-  .nav-links button {
-    margin-top: 1rem;
-  }
+@media (max-width: 900px) {
+  .desktop-only { display: none; }
+  .mobile-only { display: flex; }
+  .nav-wrap { padding: 0 1.2rem; }
 }
 </style>

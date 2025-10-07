@@ -1,8 +1,12 @@
 import { createRouter, createWebHistory } from "vue-router"
+import { supabase } from "../lib/supabase"
 
 // Pages publiques
 import Home from "../pages/Home.vue"
 import LoginRegister from "../pages/LoginRegister.vue"
+import Propos from "../pages/Propos.vue"
+import Faq from "../pages/Faq.vue"
+import Support from "../pages/Support.vue"
 
 // Pages adhérent
 import DashboardAdherent from "../pages/adherent/Dashboard.vue"
@@ -11,101 +15,100 @@ import EvenementsAdherent from "../pages/adherent/Evenements.vue"
 
 // Pages association
 import DashboardAsso from "../pages/association/Dashboard.vue"
-import AdherentsAsso from "../pages/association/Adherents.vue"
-import EvenementsAsso from "../pages/association/Evenements.vue"
 
 // Pages admin
 import DashboardAdmin from "../pages/admin/Dashboard.vue"
 import AdherentsAdmin from "../pages/admin/Adherents.vue"
-import CotisationsAdmin from "../pages/admin/Cotisations.vue"
-import EvenementsAdmin from "../pages/admin/Evenements.vue"
+import AssociationAdmin from "../pages/admin/Association.vue"
 
 const routes = [
-  // Routes publiques
+  { path: "/propos", name: "Propos", component: Propos},
   { path: "/", name: "Home", component: Home },
   { path: "/login", name: "Login", component: LoginRegister },
+  { path: "/faq", name: "Faq", component: Faq },
+  { path: "/support", name: "Support", component: Support},
 
-  // Routes adhérent
+  // Adhérent
   {
     path: "/adherent/dashboard",
-    name: "AdherentDashboard",
     component: DashboardAdherent,
-    meta: { requiresAuth: true, role: "adherent" }
+    meta: { requiresAuth: true, role: "adherent" },
   },
   {
     path: "/adherent/cotisations",
-    name: "AdherentCotisations",
     component: CotisationsAdherent,
-    meta: { requiresAuth: true, role: "adherent" }
+    meta: { requiresAuth: true, role: "adherent" },
   },
   {
     path: "/adherent/evenements",
-    name: "AdherentEvenements",
     component: EvenementsAdherent,
-    meta: { requiresAuth: true, role: "adherent" }
+    meta: { requiresAuth: true, role: "adherent" },
   },
 
-  // Routes association
+  // Association
   {
     path: "/association/dashboard",
-    name: "AssociationDashboard",
     component: DashboardAsso,
-    meta: { requiresAuth: true, role: "association" }
-  },
-  {
-    path: "/association/adherents",
-    name: "AssociationAdherents",
-    component: AdherentsAsso,
-    meta: { requiresAuth: true, role: "association" }
-  },
-  {
-    path: "/association/evenements",
-    name: "AssociationEvenements",
-    component: EvenementsAsso,
-    meta: { requiresAuth: true, role: "association" }
+    meta: { requiresAuth: true, role: "association" },
   },
 
-  // Routes admin
+  // Admin
   {
     path: "/admin/dashboard",
-    name: "AdminDashboard",
     component: DashboardAdmin,
-    meta: { requiresAuth: true, role: "admin" }
+    meta: { requiresAuth: true, role: "admin" },
   },
   {
     path: "/admin/adherents",
-    name: "AdminAdherents",
     component: AdherentsAdmin,
-    meta: { requiresAuth: true, role: "admin" }
+    meta: { requiresAuth: true, role: "admin" },
   },
   {
-    path: "/admin/cotisations",
-    name: "AdminCotisations",
-    component: CotisationsAdmin,
-    meta: { requiresAuth: true, role: "admin" }
+    path: "/admin/association",
+    component: AssociationAdmin,
+    meta: { requiresAuth: true, role: "admin" },
   },
-  {
-    path: "/admin/evenements",
-    name: "AdminEvenements",
-    component: EvenementsAdmin,
-    meta: { requiresAuth: true, role: "admin" }
-  }
 ]
 
 const router = createRouter({
   history: createWebHistory(),
-  routes
+  routes,
 })
 
-// Middleware : protéger routes selon rôle
-router.beforeEach((to, from, next) => {
-  // récupère utilisateur stocké (exemple depuis localStorage ou store global)
-  const user = JSON.parse(localStorage.getItem("user"))
+// ✅ Middleware : protège les routes et synchronise le rôle
+router.beforeEach(async (to, from, next) => {
+  let user = JSON.parse(localStorage.getItem("user"))
 
+  // Si pas d'utilisateur stocké → tentative de récupération via Supabase
+  if (!user) {
+    const { data } = await supabase.auth.getUser()
+    const supaUser = data?.user
+
+    if (supaUser) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("full_name, role, email")
+        .eq("id", supaUser.id)
+        .single()
+
+      if (profile) {
+        user = {
+          id: supaUser.id,
+          email: profile.email,
+          fullName: profile.full_name,
+          role: profile.role,
+          isLoggedIn: true,
+        }
+        localStorage.setItem("user", JSON.stringify(user))
+      }
+    }
+  }
+
+  // Contrôle d'accès
   if (to.meta.requiresAuth && !user) {
-    next("/login") // pas connecté
+    next("/login")
   } else if (to.meta.role && user?.role !== to.meta.role) {
-    next("/") // mauvais rôle → retour accueil
+    next("/")
   } else {
     next()
   }
