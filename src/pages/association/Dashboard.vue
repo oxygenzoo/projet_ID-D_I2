@@ -8,7 +8,7 @@
 
     <!-- Ligne 1 : Profil + Adhérents -->
     <div class="row row-2">
-      <!-- PROFIL ASSOCIATION -->
+      <!-- PROFIL -->
       <section class="card" :class="{ loading: loading.profile }">
         <div class="section-title">
           <h2>Profil de l’association</h2>
@@ -18,39 +18,25 @@
         </div>
 
         <div class="profile">
-          <div class="avatar-big">
-            <span v-if="assoInitials">{{ assoInitials }}</span>
-            <span v-else>?</span>
-          </div>
+          <div class="avatar-big">{{ assoInitials || '?' }}</div>
 
           <div class="invite">
             <div class="invite-label">Code d’invitation</div>
             <div class="invite-code">{{ association.join_code || '—' }}</div>
-            <small class="muted">
-              Partagez ce code pour que des adhérents rejoignent votre association.
-            </small>
+            <small class="muted">Partagez ce code pour que des adhérents rejoignent votre association.</small>
           </div>
         </div>
 
         <div v-if="!editProfile" class="kv">
-          <div class="kv-row"><span>Nom</span><strong>{{ association.name || '—' }}</strong></div>
-          <div class="kv-row"><span>Email</span><strong>{{ association.email || '—' }}</strong></div>
-          <div class="kv-row"><span>Description</span><strong>{{ association.description || '—' }}</strong></div>
+          <div class="kv-row"><span>Nom</span><strong>{{ association.name }}</strong></div>
+          <div class="kv-row"><span>Email</span><strong>{{ association.email }}</strong></div>
+          <div class="kv-row"><span>Description</span><strong>{{ association.description }}</strong></div>
         </div>
 
         <form v-else class="form" @submit.prevent="saveProfile">
-          <label>
-            <span>Nom</span>
-            <input v-model="profileDraft.name" type="text" placeholder="Nom de l’association" />
-          </label>
-          <label>
-            <span>Email</span>
-            <input v-model="profileDraft.email" type="email" placeholder="contact@asso.fr" />
-          </label>
-          <label>
-            <span>Description</span>
-            <textarea v-model="profileDraft.description" rows="3" placeholder="Décrivez votre association"></textarea>
-          </label>
+          <label><span>Nom</span><input v-model="profileDraft.name" /></label>
+          <label><span>Email</span><input v-model="profileDraft.email" /></label>
+          <label><span>Description</span><textarea v-model="profileDraft.description"></textarea></label>
           <div class="form-actions">
             <button type="button" class="btn ghost" @click="editProfile=false">Annuler</button>
             <button type="submit" class="btn">Enregistrer</button>
@@ -63,7 +49,7 @@
         <div class="section-title">
           <h2>Adhérents</h2>
           <div class="line-actions">
-            <input class="input" v-model="memberSearch" type="text" placeholder="Rechercher un adhérent" />
+            <input class="input" v-model="memberSearch" placeholder="Rechercher un adhérent" />
             <select class="select" v-model="memberFilter">
               <option value="all">Tous</option>
               <option value="active">Actifs</option>
@@ -76,30 +62,17 @@
           <div v-for="m in filteredMembers" :key="m.id" class="member-item">
             <div class="avatar"><span>{{ getInitials(m.full_name) }}</span></div>
             <div class="m-body">
-              <div class="m-top">
-                <strong class="m-name">{{ m.full_name }}</strong>
-                <span :class="['pill', m.status==='active'?'ok':'warn']">
-                  {{ m.status === 'active' ? 'Actif' : 'En attente' }}
-                </span>
-              </div>
-              <div class="m-sub">{{ m.email }}</div>
-
+              <strong>{{ m.full_name }}</strong> — {{ m.email }}
               <div class="m-controls">
-                <label class="role">
-                  <span>Rôle</span>
-                  <select v-model="m.role" @change="updateMemberRole(m)">
-                    <option value="président">Président</option>
-                    <option value="trésorier">Trésorier</option>
-                    <option value="secrétaire">Secrétaire</option>
-                    <option value="coach">Coach</option>
-                    <option value="membre-actif">Membre actif</option>
-                    <option value="membre">Membre</option>
-                  </select>
-                </label>
-
-                <button class="btn tiny outline" :disabled="sendingReminderId===m.id" @click="remindMember(m)">
-                  {{ sendingReminderId===m.id ? 'Envoi...' : 'Relancer' }}
-                </button>
+                <select v-model="m.role" @change="updateMemberRole(m)">
+                  <option value="président">Président</option>
+                  <option value="trésorier">Trésorier</option>
+                  <option value="secrétaire">Secrétaire</option>
+                  <option value="coach">Coach</option>
+                  <option value="membre-actif">Membre actif</option>
+                  <option value="membre">Membre</option>
+                </select>
+                <button class="btn tiny outline" @click="remindMember(m)">Relancer</button>
               </div>
             </div>
           </div>
@@ -120,41 +93,26 @@
         </div>
 
         <form v-if="showCreateDue" class="form inline" @submit.prevent="createDue">
-          <label>
-            <span>Intitulé</span>
-            <input v-model="dueDraft.title" type="text" placeholder="Cotisation 2025" required />
-          </label>
-          <label class="w-150">
-            <span>Montant (€)</span>
-            <input v-model.number="dueDraft.amount" type="number" min="0" step="1" required />
-          </label>
-          <label class="w-180">
-            <span>Échéance</span>
-            <input v-model="dueDraft.deadline" type="date" required />
-          </label>
-
-          <div class="form-actions">
-            <button type="button" class="btn ghost" @click="resetDue">Annuler</button>
-            <button type="submit" class="btn">Enregistrer</button>
-          </div>
+          <input v-model="dueDraft.title" placeholder="Nom de la cotisation" required />
+          <input v-model.number="dueDraft.amount" type="number" min="0" step="1" placeholder="Montant (€)" required />
+          <input v-model="dueDraft.deadline" type="date" required />
+          <button type="submit" class="btn">Enregistrer</button>
         </form>
 
         <div v-if="dues.length" class="table">
           <div class="t-head">
-            <div>Intitulé</div>
+            <div>Nom</div>
             <div class="right">Montant</div>
             <div class="right w-180">Échéance</div>
             <div class="right w-140">Statut</div>
-            <div class="right w-160">Taux paiement</div>
+            <div class="right w-160">Paiement</div>
           </div>
           <div v-for="d in dues" :key="d.id" class="t-row">
-            <div class="t-title">{{ d.title }}</div>
-            <div class="right">{{ d.amount.toFixed(0) }} €</div>
+            <div>{{ d.title }}</div>
+            <div class="right">{{ d.amount }} €</div>
             <div class="right w-180">{{ formatDate(d.deadline) }}</div>
             <div class="right w-140">
-              <span :class="['pill', d.status==='paid' ? 'ok' : 'warn']">
-                {{ d.status === 'paid' ? 'Payée' : 'Ouverte' }}
-              </span>
+              <span :class="['pill', d.status==='paid' ? 'ok' : 'warn']">{{ d.status }}</span>
             </div>
             <div class="right w-160">
               <div class="progress"><div class="bar" :style="{width: d.rate+'%'}"></div></div>
@@ -174,39 +132,59 @@
         </div>
 
         <form v-if="showCreateEvent" class="form inline" @submit.prevent="createEvent">
-          <label class="grow">
-            <span>Nom</span>
-            <input v-model="eventDraft.name" type="text" placeholder="Stage Bachata" required />
-          </label>
-          <label class="w-180">
-            <span>Date</span>
-            <input v-model="eventDraft.date" type="date" required />
-          </label>
-          <label class="grow block">
-            <span>Description</span>
-            <textarea v-model="eventDraft.description" rows="2" placeholder="Quelques mots..." />
-          </label>
-          <div class="form-actions">
-            <button type="button" class="btn ghost" @click="resetEvent">Annuler</button>
-            <button type="submit" class="btn">Enregistrer</button>
-          </div>
+          <input v-model="eventDraft.name" placeholder="Nom" required />
+          <input v-model="eventDraft.date" type="date" required />
+          <textarea v-model="eventDraft.description" rows="2" placeholder="Description"></textarea>
+          <button type="submit" class="btn">Enregistrer</button>
         </form>
 
         <div v-if="events.length" class="event-list">
           <div v-for="e in events" :key="e.id" class="event-item">
-            <div class="event-body">
-              <div class="event-title">
-                <strong>{{ e.name }}</strong>
-                <span class="muted"> — {{ e.date_fmt }}</span>
-              </div>
-              <div class="event-desc" v-if="e.description">{{ e.description }}</div>
-            </div>
-            <div class="event-actions">
-              <button class="btn tiny outline" @click="notifyEvent(e)">Notifier les membres</button>
-            </div>
+            <strong>{{ e.name }}</strong> — {{ e.date_fmt }}
+            <p class="muted">{{ e.description }}</p>
           </div>
         </div>
-        <p v-else class="muted">Aucun événement pour le moment.</p>
+        <p v-else class="muted">Aucun événement à venir.</p>
+      </section>
+    </div>
+
+    <!-- Ligne 3 : Statistiques + Notifications -->
+    <div class="row row-2">
+      <section class="card">
+        <div class="section-title"><h2>Statistiques</h2></div>
+        <div class="stat-grid">
+          <StatCard title="Adhérents actifs" :value="stats.membersCount" description="Total membres actifs" />
+          <StatCard title="Événements à venir" :value="stats.eventsCount" description="Prévu ce mois-ci" />
+          <StatCard title="Taux de paiement" :value="stats.paymentRate" description="Cotisations réglées" format="percent" />
+        </div>
+      </section>
+
+      <!-- NOTIFICATIONS -->
+      <section class="card">
+        <div class="section-title">
+          <h2>Notifications envoyées</h2>
+          <button class="btn outline tiny" @click="showSendNotif = !showSendNotif">
+            {{ showSendNotif ? 'Fermer' : '+ Envoyer' }}
+          </button>
+        </div>
+
+        <form v-if="showSendNotif" class="form inline" @submit.prevent="sendNotification">
+          <input v-model="notifDraft.title" placeholder="Titre" required />
+          <textarea v-model="notifDraft.message" placeholder="Message" rows="2" required></textarea>
+          <div class="form-actions">
+            <button type="button" class="btn ghost" @click="showSendNotif=false">Annuler</button>
+            <button type="submit" class="btn">Envoyer</button>
+          </div>
+        </form>
+
+        <div v-if="notifications.length" class="notif-list">
+          <div v-for="n in notifications" :key="n.id" class="notif-item">
+            <strong>{{ n.title }}</strong>
+            <p>{{ n.message }}</p>
+            <small class="muted">{{ n.date_fmt }}</small>
+          </div>
+        </div>
+        <p v-else class="muted">Aucune notification récente.</p>
       </section>
     </div>
   </div>
@@ -222,46 +200,37 @@ export default {
   data() {
     return {
       association: { id: null, name: '', email: '', description: '', join_code: '' },
+      profileDraft: { name: '', email: '', description: '' },
+      editProfile: false,
       user: { id: '', email: '' },
       members: [],
       dues: [],
       events: [],
       notifications: [],
-      editProfile: false,
-      profileDraft: { name: '', email: '', description: '' },
       showCreateDue: false,
       showCreateEvent: false,
+      showSendNotif: false,
       dueDraft: { title: '', amount: 0, deadline: '' },
       eventDraft: { name: '', date: '', description: '' },
+      notifDraft: { title: '', message: '' },
+      stats: { membersCount: 0, eventsCount: 0, paymentRate: 0 },
+      loading: { profile: false, members: false, dues: false, events: false, notifications: false },
       memberSearch: '',
-      memberFilter: 'all',
-      sendingReminderId: null,
-      loading: {
-        profile: false,
-        members: false,
-        dues: false,
-        events: false,
-        notifications: false
-      }
+      memberFilter: 'all'
     }
   },
   computed: {
     assoInitials() { return this.getInitials(this.association.name) },
     filteredMembers() {
       let list = [...this.members]
-      if (this.memberSearch) {
-        const q = this.memberSearch.toLowerCase()
-        list = list.filter(m => (m.full_name || '').toLowerCase().includes(q))
-      }
-      if (this.memberFilter !== 'all') {
-        list = list.filter(m => m.status === this.memberFilter)
-      }
+      const q = this.memberSearch.toLowerCase()
+      if (this.memberSearch) list = list.filter(m => m.full_name.toLowerCase().includes(q))
+      if (this.memberFilter !== 'all') list = list.filter(m => m.status === this.memberFilter)
       return list
     }
   },
   async created() { await this.init() },
   methods: {
-    // ---------- Initialisation ----------
     async init() {
       const { data: uData } = await supabase.auth.getUser()
       if (uData?.user) {
@@ -269,145 +238,120 @@ export default {
         this.user.email = uData.user.email
       }
       await this.fetchAssociation()
-      if (!this.association?.id) return // 🔥 stoppe les fetchs si pas d'association
-      await Promise.all([
-        this.fetchMembers(),
-        this.fetchDues(),
-        this.fetchEvents(),
-        this.fetchNotifications()
-      ])
+      if (!this.association?.id) return
+      await Promise.all([this.fetchMembers(), this.fetchDues(), this.fetchEvents(), this.fetchNotifications()])
+      this.computeStats()
     },
 
-    // ---------- Fetchers ----------
     async fetchAssociation() {
-      try {
-        this.loading.profile = true
-        const { data, error } = await supabase
-          .from('associations')
-          .select('*')
-          .eq('owner_id', this.user.id)
-          .single()
-        if (error) throw error
-        this.association = data || {}
-        this.profileDraft = { ...this.association }
-      } finally { this.loading.profile = false }
+      this.loading.profile = true
+      const { data } = await supabase.from('associations').select('*').eq('owner_id', this.user.id).single()
+      this.association = data || {}
+      this.profileDraft = { ...this.association }
+      this.loading.profile = false
     },
     async fetchMembers() {
-      if (!this.association?.id) return // ✅ empêche le 400
-      this.loading.members = true
-      const { data, error } = await supabase
+      if (!this.association?.id) return
+      const { data } = await supabase
         .from('adherents_associations')
         .select('role, status, profiles:adherent_id(id, full_name, email)')
         .eq('association_id', this.association.id)
-      if (!error && data)
-        this.members = data.map(r => ({
-          id: r.profiles.id,
-          full_name: r.profiles.full_name,
-          email: r.profiles.email,
-          role: r.role || 'membre',
-          status: r.status || 'active'
-        }))
-      this.loading.members = false
+      this.members = data?.map(r => ({
+        id: r.profiles.id,
+        full_name: r.profiles.full_name,
+        email: r.profiles.email,
+        role: r.role,
+        status: r.status
+      })) || []
+      this.stats.membersCount = this.members.length
     },
     async fetchDues() {
       if (!this.association?.id) return
-      this.loading.dues = true
       const { data } = await supabase
         .from('cotisations')
-        .select('id, title, amount, deadline, status, paid_count, total_count')
+        .select('*')
         .eq('association_id', this.association.id)
         .order('created_at', { ascending: false })
-      this.dues = data || []
-      this.loading.dues = false
+      this.dues = data.map(d => ({
+        ...d,
+        rate: d.total_count ? Math.round((d.paid_count / d.total_count) * 100) : 0
+      }))
+      const paid = this.dues.filter(d => d.status === 'paid').length
+      this.stats.paymentRate = this.dues.length ? Math.round((paid / this.dues.length) * 100) : 0
     },
     async fetchEvents() {
       if (!this.association?.id) return
-      this.loading.events = true
       const { data } = await supabase
         .from('evenements')
-        .select('id, name, date, description')
+        .select('*')
         .eq('association_id', this.association.id)
         .order('date', { ascending: true })
-      this.events = data.map(e => ({
-        ...e,
-        date_fmt: new Date(e.date).toLocaleDateString('fr-FR')
-      }))
-      this.loading.events = false
+      this.events = data.map(e => ({ ...e, date_fmt: new Date(e.date).toLocaleDateString('fr-FR') }))
+      this.stats.eventsCount = this.events.length
     },
     async fetchNotifications() {
       if (!this.association?.id) return
-      this.loading.notifications = true
       const { data } = await supabase
         .from('notifications')
         .select('*')
         .eq('association_id', this.association.id)
         .order('created_at', { ascending: false })
         .limit(10)
-      this.notifications = data || []
-      this.loading.notifications = false
+      this.notifications = data.map(n => ({
+        ...n,
+        date_fmt: new Date(n.created_at).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long' })
+      }))
     },
 
-    // ---------- Actions ----------
-    async saveProfile() {
-      await supabase.from('associations').update(this.profileDraft).eq('id', this.association.id)
-      this.association = { ...this.profileDraft }
-      this.editProfile = false
-    },
-    async updateMemberRole(m) {
-      await supabase
-        .from('adherents_associations')
-        .update({ role: m.role })
-        .eq('adherent_id', m.id)
-        .eq('association_id', this.association.id)
-    },
-    async remindMember(m) {
-      this.sendingReminderId = m.id
-      await supabase.from('notifications').insert({
-        association_id: this.association.id,
-        user_id: m.id,
-        title: 'Rappel cotisation',
-        message: `Bonjour ${m.full_name}, pensez à régler votre cotisation.`
-      })
-      await this.fetchNotifications()
-      this.sendingReminderId = null
-    },
+    computeStats() { /* stats calculées directement dans les fetchers */ },
+
+    // --- COTISATION ---
     async createDue() {
-      const payload = { ...this.dueDraft, association_id: this.association.id, status: 'open' }
+      const payload = {
+        association_id: this.association.id,
+        title: this.dueDraft.title,
+        amount: this.dueDraft.amount,
+        deadline: this.dueDraft.deadline,
+        status: 'open',
+        paid_count: 0,
+        total_count: this.members.length
+      }
       await supabase.from('cotisations').insert(payload)
       this.showCreateDue = false
       await this.fetchDues()
     },
+
+    // --- ÉVÉNEMENTS ---
     async createEvent() {
-      const payload = { ...this.eventDraft, association_id: this.association.id }
+      const payload = {
+        association_id: this.association.id,
+        name: this.eventDraft.name,
+        date: this.eventDraft.date,
+        description: this.eventDraft.description
+      }
       await supabase.from('evenements').insert(payload)
       this.showCreateEvent = false
       await this.fetchEvents()
     },
-    async notifyEvent(e) {
-      await supabase.from('notifications').insert({
+
+    // --- NOTIFICATIONS ---
+    async sendNotification() {
+      const payload = {
         association_id: this.association.id,
-        title: `Nouvel événement : ${e.name}`,
-        message: e.description || 'Un nouvel événement a été ajouté.'
-      })
+        title: this.notifDraft.title,
+        message: this.notifDraft.message
+      }
+      await supabase.from('notifications').insert(payload)
+      this.showSendNotif = false
       await this.fetchNotifications()
     },
 
-    // ---------- Utils ----------
-    getInitials(name) {
-      if (!name) return '?'
-      const parts = name.split(' ')
-      return (parts[0][0] + (parts[1]?.[0] || '')).toUpperCase()
-    },
-    formatDate(d) {
-      return new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' })
-    },
-    resetDue() { this.showCreateDue = false; this.dueDraft = { title: '', amount: 0, deadline: '' } },
-    resetEvent() { this.showCreateEvent = false; this.eventDraft = { name: '', date: '', description: '' } }
+    // --- OUTILS ---
+    getInitials(n) { if (!n) return '?'; const p = n.split(' '); return (p[0][0] + (p[1]?.[0] || '')).toUpperCase() },
+    formatDate(d) { return new Date(d).toLocaleDateString('fr-FR') }
   }
 }
 </script>
-
-
 
 <style scoped>
 /* ---------- Layout global ---------- */
