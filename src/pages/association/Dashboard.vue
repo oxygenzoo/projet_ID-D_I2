@@ -6,7 +6,7 @@
       <p>Gérez votre association : membres, cotisations, événements et communication.</p>
     </header>
 
-    <!-- LIGNE 1 : Profil (gauche) + Adhérents (droite) -->
+    <!-- Ligne 1 : Profil + Adhérents -->
     <div class="row row-2">
       <!-- PROFIL ASSOCIATION -->
       <section class="card" :class="{ loading: loading.profile }">
@@ -18,7 +18,7 @@
         </div>
 
         <div class="profile">
-          <div class="avatar-big" aria-hidden="true">
+          <div class="avatar-big">
             <span v-if="assoInitials">{{ assoInitials }}</span>
             <span v-else>?</span>
           </div>
@@ -26,7 +26,9 @@
           <div class="invite">
             <div class="invite-label">Code d’invitation</div>
             <div class="invite-code">{{ association.join_code || '—' }}</div>
-            <small class="muted">Partagez ce code pour que des adhérents rejoignent votre association.</small>
+            <small class="muted">
+              Partagez ce code pour que des adhérents rejoignent votre association.
+            </small>
           </div>
         </div>
 
@@ -61,12 +63,7 @@
         <div class="section-title">
           <h2>Adhérents</h2>
           <div class="line-actions">
-            <input
-              class="input"
-              v-model="memberSearch"
-              type="text"
-              placeholder="Rechercher un adhérent"
-            />
+            <input class="input" v-model="memberSearch" type="text" placeholder="Rechercher un adhérent" />
             <select class="select" v-model="memberFilter">
               <option value="all">Tous</option>
               <option value="active">Actifs</option>
@@ -91,20 +88,16 @@
                 <label class="role">
                   <span>Rôle</span>
                   <select v-model="m.role" @change="updateMemberRole(m)">
-                    <option value="president">Président</option>
-                    <option value="tresorier">Trésorier</option>
-                    <option value="secretaire">Secrétaire</option>
+                    <option value="président">Président</option>
+                    <option value="trésorier">Trésorier</option>
+                    <option value="secrétaire">Secrétaire</option>
                     <option value="coach">Coach</option>
                     <option value="membre-actif">Membre actif</option>
                     <option value="membre">Membre</option>
                   </select>
                 </label>
 
-                <button
-                  class="btn tiny outline"
-                  :disabled="sendingReminderId===m.id"
-                  @click="remindMember(m)"
-                >
+                <button class="btn tiny outline" :disabled="sendingReminderId===m.id" @click="remindMember(m)">
                   {{ sendingReminderId===m.id ? 'Envoi...' : 'Relancer' }}
                 </button>
               </div>
@@ -115,7 +108,7 @@
       </section>
     </div>
 
-    <!-- LIGNE 2 : Cotisations (gauche) + Événements (droite) -->
+    <!-- Ligne 2 : Cotisations + Événements -->
     <div class="row row-2">
       <!-- COTISATIONS -->
       <section class="card" :class="{ loading: loading.dues }">
@@ -126,18 +119,15 @@
           </button>
         </div>
 
-        <!-- Formulaire "dans" la section -->
         <form v-if="showCreateDue" class="form inline" @submit.prevent="createDue">
           <label>
             <span>Intitulé</span>
             <input v-model="dueDraft.title" type="text" placeholder="Cotisation 2025" required />
           </label>
-
           <label class="w-150">
             <span>Montant (€)</span>
             <input v-model.number="dueDraft.amount" type="number" min="0" step="1" required />
           </label>
-
           <label class="w-180">
             <span>Échéance</span>
             <input v-model="dueDraft.deadline" type="date" required />
@@ -149,7 +139,6 @@
           </div>
         </form>
 
-        <!-- Tableau des cotisations -->
         <div v-if="dues.length" class="table">
           <div class="t-head">
             <div>Intitulé</div>
@@ -184,48 +173,25 @@
           </button>
         </div>
 
-        <!-- Formulaire inline -->
         <form v-if="showCreateEvent" class="form inline" @submit.prevent="createEvent">
           <label class="grow">
             <span>Nom</span>
             <input v-model="eventDraft.name" type="text" placeholder="Stage Bachata" required />
           </label>
-
           <label class="w-180">
             <span>Date</span>
             <input v-model="eventDraft.date" type="date" required />
           </label>
-
-          <label class="w-180">
-            <span>Type</span>
-            <select v-model="eventDraft.type">
-              <option value="free">Gratuit</option>
-              <option value="paid">Payant</option>
-            </select>
-          </label>
-
-          <label v-if="eventDraft.type==='paid'" class="w-150">
-            <span>Montant (€)</span>
-            <input v-model.number="eventDraft.amount" type="number" min="0" step="1" required />
-          </label>
-
-          <label v-if="eventDraft.type==='paid'" class="w-180">
-            <span>Échéance</span>
-            <input v-model="eventDraft.due_date" type="date" required />
-          </label>
-
           <label class="grow block">
             <span>Description</span>
             <textarea v-model="eventDraft.description" rows="2" placeholder="Quelques mots..." />
           </label>
-
           <div class="form-actions">
             <button type="button" class="btn ghost" @click="resetEvent">Annuler</button>
             <button type="submit" class="btn">Enregistrer</button>
           </div>
         </form>
 
-        <!-- Liste lisible -->
         <div v-if="events.length" class="event-list">
           <div v-for="e in events" :key="e.id" class="event-item">
             <div class="event-body">
@@ -234,11 +200,6 @@
                 <span class="muted"> — {{ e.date_fmt }}</span>
               </div>
               <div class="event-desc" v-if="e.description">{{ e.description }}</div>
-              <div class="event-meta">
-                <span :class="['pill', e.type==='free' ? 'ok' : 'warn']">
-                  {{ e.type==='free' ? 'Gratuit' : ('Payant · ' + e.amount + ' €') }}
-                </span>
-              </div>
             </div>
             <div class="event-actions">
               <button class="btn tiny outline" @click="notifyEvent(e)">Notifier les membres</button>
@@ -246,78 +207,6 @@
           </div>
         </div>
         <p v-else class="muted">Aucun événement pour le moment.</p>
-      </section>
-    </div>
-
-    <!-- LIGNE 3 : Stats & Notifications -->
-    <div class="row row-2">
-      <!-- STATS / GRAPHIQUES (SVG maison, aucune lib) -->
-      <section class="card">
-        <div class="section-title">
-          <h2>Statistiques</h2>
-            <StatCard
-              title="Adhérents actifs"
-              :value="stats.membersCount"
-              description="Membres actuellement inscrits"
-              :loading="loading.members"
-              :error="error.members"
-            />
-            <StatCard
-              title="Événements à venir"
-              :value="stats.eventsCount"
-              description="Prévu ce mois-ci"
-              :loading="loading.events"
-              :error="error.events"
-            />
-            <StatCard
-              title="Taux de paiement"
-              :value="stats.paymentRate"
-              description="Cotisations réglées"
-              format="percent"
-              :loading="loading.dues"
-              :error="error.dues"
-            />
-        </div>
-      </section>
-
-      <!-- NOTIFICATIONS -->
-      <section class="card" :class="{ loading: loading.notifications }">
-        <div class="section-title">
-          <h2>Notifications envoyées</h2>
-          <button class="btn outline tiny" @click="showSendNotif = !showSendNotif">
-            {{ showSendNotif ? 'Fermer' : '+ Envoyer' }}
-          </button>
-        </div>
-
-        <form v-if="showSendNotif" class="form inline" @submit.prevent="sendNotification">
-          <label class="grow">
-            <span>Titre</span>
-            <input v-model="notifDraft.title" type="text" placeholder="Rappel cotisation" required />
-          </label>
-          <label class="grow block">
-            <span>Message</span>
-            <textarea v-model="notifDraft.message" rows="2" placeholder="Votre message" required />
-          </label>
-          <div class="form-actions">
-            <button type="button" class="btn ghost" @click="resetNotif">Annuler</button>
-            <button type="submit" class="btn">Envoyer</button>
-          </div>
-        </form>
-
-        <div v-if="notifications.length" class="notif-list">
-          <div v-for="n in notifications" :key="n.id" class="notif-item">
-            <div class="notif-head">
-              <strong>{{ n.title }}</strong>
-              <span class="muted">{{ n.date_fmt }}</span>
-            </div>
-            <div class="notif-body">{{ n.message }}</div>
-          </div>
-        </div>
-        <p v-else class="muted">Aucune notification récente.</p>
-      </section>
-
-      <section class="row stats">
-        
       </section>
     </div>
   </div>
@@ -332,73 +221,32 @@ export default {
   components: { StatCard },
   data() {
     return {
-      // ======== Données principales ========
-      // Stats générales (affichées dans les cartes)
-      stats: {
-        membersCount: 0,
-        eventsCount: 0,
-        paymentRate: 0
-      },
-
-      // États de chargement et d'erreur pour chaque module
+      association: { id: null, name: '', email: '', description: '', join_code: '' },
+      user: { id: '', email: '' },
+      members: [],
+      dues: [],
+      events: [],
+      notifications: [],
+      editProfile: false,
+      profileDraft: { name: '', email: '', description: '' },
+      showCreateDue: false,
+      showCreateEvent: false,
+      dueDraft: { title: '', amount: 0, deadline: '' },
+      eventDraft: { name: '', date: '', description: '' },
+      memberSearch: '',
+      memberFilter: 'all',
+      sendingReminderId: null,
       loading: {
         profile: false,
         members: false,
         dues: false,
         events: false,
         notifications: false
-      },
-      error: {
-        members: '',
-        events: '',
-        dues: ''
-      },
-
-      // Informations de l’utilisateur connecté (récup depuis Supabase)
-      user: { id: '', email: '' },
-
-      // ======== PROFIL ASSOCIATION ========
-      // Données du profil de l’association actuelle
-      association: { id: null, name: '', email: '', description: '', join_code: '' },
-      editProfile: false, // pour basculer entre vue et édition
-      profileDraft: { name: '', email: '', description: '' }, // copie modifiable du profil
-
-      // ======== ADHÉRENTS ========
-      members: [], // liste complète des adhérents reliés à cette asso
-      memberSearch: '', // champ de recherche
-      memberFilter: 'all', // filtre "Tous / Actifs / En attente"
-      sendingReminderId: null, // pour savoir à qui on envoie une notif
-
-      // ======== COTISATIONS ========
-      dues: [], // liste des cotisations
-      showCreateDue: false, // toggle du formulaire de création
-      dueDraft: { title: '', amount: 0, deadline: '' }, // brouillon de cotisation
-
-      // ======== ÉVÉNEMENTS ========
-      events: [], // liste des événements
-      showCreateEvent: false, // toggle du formulaire
-      eventDraft: { name: '', date: '', type: 'free', amount: 0, due_date: '', description: '' },
-
-      // ======== NOTIFICATIONS ========
-      notifications: [],
-      showSendNotif: false,
-      notifDraft: { title: '', message: '' },
-
-      // ======== Stats simplifiées ========
-      stats: {
-        membersPerMonth: [3, 4, 5, 4, 6, 7, 8, 9, 10, 12, 12, 13],
-        paidCount: 0,
-        totalDues: 0
       }
     }
   },
   computed: {
-    // Initiales à partir du nom de l’association
-    assoInitials() {
-      return this.getInitials(this.association.name)
-    },
-
-    // Liste filtrée selon la recherche ou le statut
+    assoInitials() { return this.getInitials(this.association.name) },
     filteredMembers() {
       let list = [...this.members]
       if (this.memberSearch) {
@@ -406,287 +254,159 @@ export default {
         list = list.filter(m => (m.full_name || '').toLowerCase().includes(q))
       }
       if (this.memberFilter !== 'all') {
-        list = list.filter(m => m.status === (this.memberFilter === 'active' ? 'active' : 'pending'))
+        list = list.filter(m => m.status === this.memberFilter)
       }
       return list
-    },
-
-    // Calculs annexes pour graphiques/statistiques
-    maxMembers() {
-      return Math.max(1, ...this.stats.membersPerMonth)
-    },
-    donutPaid() {
-      const { paidCount, totalDues } = this.stats
-      const ratio = totalDues ? (paidCount / totalDues) : 0
-      // périmètre du cercle (2πr) ~ 289 → pour SVG animé
-      return (289 * ratio).toFixed(1)
     }
   },
-  async created() {
-    // Au montage du composant, on récupère d’abord la session utilisateur,
-    // puis toutes les données liées à son asso.
-    await this.init()
-    await this.fetchStats()
-  },
+  async created() { await this.init() },
   methods: {
-    // ===================== CHARGEMENT INITIAL =====================
+    // ---------- Initialisation ----------
     async init() {
-      // On récupère la session Supabase (pour connaître l’utilisateur connecté)
       const { data: uData } = await supabase.auth.getUser()
       if (uData?.user) {
         this.user.id = uData.user.id
         this.user.email = uData.user.email
       }
-
-      // Ensuite, on charge tout en parallèle (gain de perfs)
+      await this.fetchAssociation()
+      if (!this.association?.id) return // 🔥 stoppe les fetchs si pas d'association
       await Promise.all([
-        this.fetchAssociation(),
         this.fetchMembers(),
         this.fetchDues(),
         this.fetchEvents(),
         this.fetchNotifications()
       ])
-
-      this.computeStats()
     },
 
-    // ===================== FETCH : ASSOCIATION =====================
+    // ---------- Fetchers ----------
     async fetchAssociation() {
       try {
         this.loading.profile = true
         const { data, error } = await supabase
           .from('associations')
-          .select('id, name, email, description, join_code')
+          .select('*')
           .eq('owner_id', this.user.id)
           .single()
         if (error) throw error
         this.association = data || {}
-
-        // Remplir le formulaire de brouillon (pour édition)
-        this.profileDraft = {
-          name: this.association.name || '',
-          email: this.association.email || '',
-          description: this.association.description || ''
-        }
-      } finally {
-        this.loading.profile = false
-      }
+        this.profileDraft = { ...this.association }
+      } finally { this.loading.profile = false }
     },
-
-    // ===================== FETCH : ADHÉRENTS =====================
     async fetchMembers() {
-      try {
-        this.loading.members = true
-        // On joint adherents_associations + profiles (grâce à foreign key)
-        const { data, error } = await supabase
-          .from('adherents_associations')
-          .select('role, status, profiles:adherent_id(id, full_name, email)')
-          .eq('association_id', this.association.id)
-
-        if (error) throw error
-
-        // Mise en forme pour la vue
-        this.members = (data || []).map(row => ({
-          id: row.profiles?.id,
-          full_name: row.profiles?.full_name,
-          email: row.profiles?.email,
-          role: row.role || 'membre',
-          status: row.status || 'active'
+      if (!this.association?.id) return // ✅ empêche le 400
+      this.loading.members = true
+      const { data, error } = await supabase
+        .from('adherents_associations')
+        .select('role, status, profiles:adherent_id(id, full_name, email)')
+        .eq('association_id', this.association.id)
+      if (!error && data)
+        this.members = data.map(r => ({
+          id: r.profiles.id,
+          full_name: r.profiles.full_name,
+          email: r.profiles.email,
+          role: r.role || 'membre',
+          status: r.status || 'active'
         }))
-      } finally {
-        this.loading.members = false
-      }
+      this.loading.members = false
     },
-
-    // ===================== FETCH : COTISATIONS =====================
     async fetchDues() {
-      try {
-        this.loading.dues = true
-        const { data, error } = await supabase
-          .from('cotisations')
-          .select('id, title, amount, deadline, status, paid_count, total_count')
-          .eq('association_id', this.association.id)
-          .order('created_at', { ascending: false })
-        if (error) throw error
-
-        // Calcul du taux de paiement pour chaque cotisation
-        this.dues = (data || []).map(d => ({
-          ...d,
-          rate: d.total_count ? Math.round((d.paid_count / d.total_count) * 100) : 0
-        }))
-      } finally {
-        this.loading.dues = false
-      }
+      if (!this.association?.id) return
+      this.loading.dues = true
+      const { data } = await supabase
+        .from('cotisations')
+        .select('id, title, amount, deadline, status, paid_count, total_count')
+        .eq('association_id', this.association.id)
+        .order('created_at', { ascending: false })
+      this.dues = data || []
+      this.loading.dues = false
     },
-
-    // ===================== FETCH : ÉVÉNEMENTS =====================
     async fetchEvents() {
-      try {
-        this.loading.events = true
-        const { data, error } = await supabase
-          .from('evenements')
-          .select('id, name, date, type, amount, due_date, description')
-          .eq('association_id', this.association.id)
-          .order('date', { ascending: true })
-        if (error) throw error
-
-        // On formate les dates pour l’affichage (JJ/MM/AAAA)
-        this.events = (data || []).map(e => ({
-          ...e,
-          date_fmt: new Date(e.date).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' })
-        }))
-      } finally {
-        this.loading.events = false
-      }
+      if (!this.association?.id) return
+      this.loading.events = true
+      const { data } = await supabase
+        .from('evenements')
+        .select('id, name, date, description')
+        .eq('association_id', this.association.id)
+        .order('date', { ascending: true })
+      this.events = data.map(e => ({
+        ...e,
+        date_fmt: new Date(e.date).toLocaleDateString('fr-FR')
+      }))
+      this.loading.events = false
     },
-
-    // ===================== FETCH : NOTIFICATIONS =====================
     async fetchNotifications() {
-      try {
-        this.loading.notifications = true
-        const { data, error } = await supabase
-          .from('notifications')
-          .select('id, title, message, created_at')
-          .eq('association_id', this.association.id)
-          .order('created_at', { ascending: false })
-          .limit(10)
-        if (error) throw error
-
-        this.notifications = (data || []).map(n => ({
-          ...n,
-          date_fmt: new Date(n.created_at).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long' })
-        }))
-      } finally {
-        this.loading.notifications = false
-      }
+      if (!this.association?.id) return
+      this.loading.notifications = true
+      const { data } = await supabase
+        .from('notifications')
+        .select('*')
+        .eq('association_id', this.association.id)
+        .order('created_at', { ascending: false })
+        .limit(10)
+      this.notifications = data || []
+      this.loading.notifications = false
     },
 
-    // ===================== PROFIL =====================
+    // ---------- Actions ----------
     async saveProfile() {
-      // Sauvegarde des modifications du profil (update SQL)
-      const payload = {
-        name: this.profileDraft.name.trim(),
-        email: this.profileDraft.email.trim(),
-        description: this.profileDraft.description.trim()
-      }
-      await supabase.from('associations').update(payload).eq('id', this.association.id)
-      this.association = { ...this.association, ...payload }
+      await supabase.from('associations').update(this.profileDraft).eq('id', this.association.id)
+      this.association = { ...this.profileDraft }
       this.editProfile = false
     },
-
-    // ===================== ADHÉRENTS : Rôle + Rappel =====================
     async updateMemberRole(m) {
-      // Met à jour le rôle de l’adhérent dans la table pivot
       await supabase
         .from('adherents_associations')
         .update({ role: m.role })
-        .eq('association_id', this.association.id)
         .eq('adherent_id', m.id)
+        .eq('association_id', this.association.id)
     },
-
     async remindMember(m) {
-      // Envoie une notification "Rappel cotisation" à un adhérent
       this.sendingReminderId = m.id
-      try {
-        await supabase.from('notifications').insert({
-          association_id: this.association.id,
-          user_id: m.id,
-          title: 'Rappel cotisation',
-          message: `Bonjour ${m.full_name.split(' ')[0]}, pensez à régler votre cotisation.`,
-        })
-        await this.fetchNotifications()
-      } finally {
-        this.sendingReminderId = null
-      }
-    },
-
-    // ===================== COTISATIONS : CRUD =====================
-    resetDue() {
-      this.dueDraft = { title: '', amount: 0, deadline: '' }
-      this.showCreateDue = false
+      await supabase.from('notifications').insert({
+        association_id: this.association.id,
+        user_id: m.id,
+        title: 'Rappel cotisation',
+        message: `Bonjour ${m.full_name}, pensez à régler votre cotisation.`
+      })
+      await this.fetchNotifications()
+      this.sendingReminderId = null
     },
     async createDue() {
-      const payload = {
-        association_id: this.association.id,
-        title: this.dueDraft.title.trim(),
-        amount: this.dueDraft.amount || 0,
-        deadline: this.dueDraft.deadline,
-        status: 'open',
-        paid_count: 0,
-        total_count: this.members.length
-      }
+      const payload = { ...this.dueDraft, association_id: this.association.id, status: 'open' }
       await supabase.from('cotisations').insert(payload)
-      this.resetDue()
+      this.showCreateDue = false
       await this.fetchDues()
-      this.computeStats()
-    },
-
-    // ===================== ÉVÉNEMENTS : CRUD =====================
-    resetEvent() {
-      this.eventDraft = { name: '', date: '', type: 'free', amount: 0, due_date: '', description: '' }
-      this.showCreateEvent = false
     },
     async createEvent() {
-      const payload = {
-        association_id: this.association.id,
-        name: this.eventDraft.name.trim(),
-        date: this.eventDraft.date,
-        type: this.eventDraft.type,
-        amount: this.eventDraft.type === 'paid' ? (this.eventDraft.amount || 0) : 0,
-        due_date: this.eventDraft.type === 'paid' ? this.eventDraft.due_date : null,
-        description: this.eventDraft.description?.trim() || null
-      }
+      const payload = { ...this.eventDraft, association_id: this.association.id }
       await supabase.from('evenements').insert(payload)
-      this.resetEvent()
+      this.showCreateEvent = false
       await this.fetchEvents()
     },
     async notifyEvent(e) {
-      // Envoi d’une notif générale à tous les adhérents
       await supabase.from('notifications').insert({
         association_id: this.association.id,
-        title: `Nouvel évènement : ${e.name}`,
-        message: e.type === 'free'
-          ? `Rendez-vous le ${e.date_fmt}.`
-          : `Évènement payant (${e.amount} €). Échéance ${e.due_date ? new Date(e.due_date).toLocaleDateString('fr-FR') : ''}.`
+        title: `Nouvel événement : ${e.name}`,
+        message: e.description || 'Un nouvel événement a été ajouté.'
       })
       await this.fetchNotifications()
     },
 
-    // ===================== NOTIFICATIONS =====================
-    resetNotif() {
-      this.notifDraft = { title: '', message: '' }
-      this.showSendNotif = false
-    },
-    async sendNotification() {
-      await supabase.from('notifications').insert({
-        association_id: this.association.id,
-        title: this.notifDraft.title.trim(),
-        message: this.notifDraft.message.trim()
-      })
-      this.resetNotif()
-      await this.fetchNotifications()
-    },
-
-    // ===================== STATS + UTILITAIRES =====================
-    computeStats() {
-      // Comptage simple pour les cartes de stats
-      this.stats.totalDues = this.dues.length
-      this.stats.paidCount = this.dues.filter(d => d.status === 'paid').length
-    },
-    getInitials(s) {
-      if (!s) return ''
-      const parts = s.trim().split(/\s+/)
-      const first = parts[0]?.[0] || ''
-      const last = parts[1]?.[0] || ''
-      return (first + last).toUpperCase()
+    // ---------- Utils ----------
+    getInitials(name) {
+      if (!name) return '?'
+      const parts = name.split(' ')
+      return (parts[0][0] + (parts[1]?.[0] || '')).toUpperCase()
     },
     formatDate(d) {
-      if (!d) return '—'
       return new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' })
-    }
+    },
+    resetDue() { this.showCreateDue = false; this.dueDraft = { title: '', amount: 0, deadline: '' } },
+    resetEvent() { this.showCreateEvent = false; this.eventDraft = { name: '', date: '', description: '' } }
   }
 }
 </script>
+
 
 
 <style scoped>
