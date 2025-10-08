@@ -4,6 +4,10 @@ Agora CRM est une application web moderne développée avec Vue.js 3 et Supabase
 Elle offre une solution intuitive pour les associations souhaitant gérer leurs adhérents, cotisations, événements et leur communication interne.
 L’application intègre également une section d’actualités provenant de grandes ONG (WWF, UNICEF, MSF...) grâce à l’API publique de The Guardian.
 
+## Maquette FIGMA
+
+Voici la maquette FIGMA de notre projet : https://www.figma.com/design/PoAznUNG2KGo23PkXN95yb/Agora-final-project?node-id=1-2&t=5npGqR0Xr7lIAZGQ-1
+
 ## Fonctionnalités principales
 ### Gestion complète des adhérents
 
