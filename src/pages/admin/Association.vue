@@ -137,20 +137,22 @@ export default {
   name: 'AdminAssociations',
   data() {
     return {
-      // ====== Filtres et recherche ======
-      q: '',            // champ de recherche texte
-      activity: '',     // filtre (active / inactive)
+      // Auth (nécessaire pour owner_id & politiques)
+      userId: null,
 
-      // ====== État du modal ======
-      editOpen: false,  // contrôle d’ouverture du modal
-      edit: {},         // association en cours d’édition
+      // Filtres
+      q: '',
+      activity: '',
 
-      // ====== Liste principale ======
-      associations: []  // récupérée depuis Supabase
+      // Modal
+      editOpen: false,
+      edit: {},
+
+      // Données
+      associations: []
     }
   },
   computed: {
-    // Liste filtrée selon recherche et statut
     filtered() {
       const q = this.q.toLowerCase()
       return this.associations.filter(a => {
@@ -159,25 +161,25 @@ export default {
         return okQ && okA
       })
     },
-    // Moyenne du nombre d'adhérents par asso
     avgMembers() {
       if (!this.associations.length) return 0
       const sum = this.associations.reduce((acc, a) => acc + (a.members_count || 0), 0)
       return Math.round(sum / this.associations.length)
     },
-    // Total d’événements actifs (prochaine période)
     totalEvents() {
       return this.associations.reduce((acc, a) => acc + (a.events_count || 0), 0)
     }
   },
   async created() {
-    // On charge les données à l'ouverture
+    // 1) On récupère l’utilisateur courant (utilisé pour owner_id & RLS)
+    const { data: u } = await supabase.auth.getUser()
+    this.userId = u?.user?.id || null
+
+    // 2) On charge la liste
     await this.fetchAssociations()
   },
   methods: {
-    // ==========================================================
-    // =============   FETCH DE TOUTES LES ASSOCIATIONS   ========
-    // ==========================================================
+    // ============== LECTURE ==============
     async fetchAssociations() {
       try {
         const { data, error } = await supabase
@@ -186,25 +188,21 @@ export default {
 
         if (error) throw error
 
-        // Pour chaque association, on complète avec :
-        // → nombre d’adhérents
-        // → nombre d’événements
-        const associations = await Promise.all(
+        // Compléter avec les compteurs (membres actifs + évènements à venir)
+        const nowIso = new Date().toISOString()
+        const withCounts = await Promise.all(
           (data || []).map(async (a) => {
-            // nombre de membres actifs reliés à cette asso
             const { count: membersCount } = await supabase
               .from('adherents_associations')
               .select('*', { count: 'exact', head: true })
               .eq('association_id', a.id)
               .eq('status', 'active')
 
-            // nombre d’événements à venir
-            const now = new Date().toISOString()
             const { count: eventsCount } = await supabase
               .from('evenements')
               .select('*', { count: 'exact', head: true })
               .eq('association_id', a.id)
-              .gte('date', now)
+              .gte('date', nowIso)
 
             return {
               ...a,
@@ -214,72 +212,72 @@ export default {
           })
         )
 
-        this.associations = associations
+        this.associations = withCounts
       } catch (err) {
         console.error('Erreur fetch associations :', err)
       }
     },
 
-    // ==========================================================
-    // =============   CHANGEMENT DU STATUT   ===================
-    // ==========================================================
+    // ============== STATUT ==============
     async saveStatus(a) {
       try {
-        await supabase.from('associations')
+        const { error } = await supabase
+          .from('associations')
           .update({ status: a.status })
           .eq('id', a.id)
+        if (error) throw error
       } catch (err) {
         console.error('Erreur update statut :', err)
       }
     },
 
-    // ==========================================================
-    // =============   SUPPRESSION D’UNE ASSO   =================
-    // ==========================================================
+    // ============== SUPPRESSION ==============
     async remove(a) {
       if (!confirm(`Supprimer ${a.name} ?`)) return
       try {
-        await supabase.from('associations').delete().eq('id', a.id)
+        const { error } = await supabase.from('associations').delete().eq('id', a.id)
+        if (error) throw error
         this.associations = this.associations.filter(x => x.id !== a.id)
       } catch (err) {
         console.error('Erreur suppression :', err)
       }
     },
 
-    // ==========================================================
-    // =============   CRÉATION / MODIFICATION   ================
-    // ==========================================================
+    // ============== CRÉER / ÉDITER ==============
     openEdit(a) {
-      // Si vide = création, sinon modification
+      // a vide -> création ; sinon édition
       this.edit = { ...a }
       this.editOpen = true
     },
 
     async saveAssociation() {
       try {
-        // Préparation du payload (on gère le code auto si vide)
+        // ⚠️ Important : on met owner_id pour satisfaire les politiques RLS “owner”
         const payload = {
           name: this.edit.name?.trim(),
           email: this.edit.email?.trim(),
           description: this.edit.description?.trim() || '',
-          join_code: this.edit.join_code?.trim() || Math.random().toString(36).substring(2, 8).toUpperCase(),
-          status: this.edit.status || 'active'
+          join_code: (this.edit.join_code?.trim() || Math.random().toString(36).substring(2, 8).toUpperCase()),
+          status: this.edit.status || 'active',
+          owner_id: this.userId || null
         }
 
         if (!this.edit.id) {
-          // ➕ Création
-          const { data, error } = await supabase.from('associations').insert(payload).select().single()
+          // Création
+          const { error } = await supabase.from('associations').insert(payload)
           if (error) throw error
-          this.associations.unshift({
-            ...data,
-            members_count: 0,
-            events_count: 0
-          })
+
+          // Après création, on refetch pour récupérer les compteurs + respecter RLS
+          await this.fetchAssociations()
         } else {
           // Mise à jour
-          await supabase.from('associations').update(payload).eq('id', this.edit.id)
-          const i = this.associations.findIndex(x => x.id === this.edit.id)
-          if (i > -1) this.associations[i] = { ...this.associations[i], ...payload }
+          const { error } = await supabase
+            .from('associations')
+            .update(payload)
+            .eq('id', this.edit.id)
+          if (error) throw error
+
+          await this.fetchAssociations()
         }
 
         this.editOpen = false

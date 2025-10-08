@@ -44,7 +44,8 @@
 
     <!-- Nouvelles des associations -->
     <section class="news">
-      <h2>Les associations les plus suivies vous donnent des nouvelles</h2>
+      <!--<h2>Les associations les plus suivies vous donnent des nouvelles</h2>-->
+      <h2>Les dernières actualités </h2>
 
       <!-- État : chargement -->
       <div v-if="loading" class="state">
@@ -79,6 +80,13 @@
 import { ref, onMounted } from 'vue'
 import { globalActions } from '@/store/useGlobal'
 
+// grandes assos très suivies (ajuste librement)
+const ORGS = [
+  "UNICEF", "Médecins Sans Frontières", "MSF",
+  "WWF", "Croix-Rouge", "IFRC", "Greenpeace",
+  "Secours Populaire", "Emmaüs"
+]
+
 export default {
   name: "Home",
   setup() {
@@ -86,22 +94,41 @@ export default {
     const loading = ref(false)
     const error = ref('')
 
+    function stripHtml(html) {
+      return (html || '').replace(/<[^>]+>/g, '').trim()
+    }
+
     async function fetchNews() {
       try {
         loading.value = true
         error.value = ''
         globalActions.setLoading(true)
 
-        // 🔄 NOUVELLE API : Associations et ONG
-        const res = await fetch('https://api.publicapis.org/entries') // sans filtre
-        if (!res.ok) throw new Error('Erreur HTTP ' + res.status)
-        const { entries } = await res.json()
+        const apiKey = import.meta.env.VITE_GUARDIAN_API_KEY
+        if (!apiKey) throw new Error("API key The Guardian manquante")
 
-        // On garde les 4 premières pour l’affichage
-        news.value = entries.slice(0, 4).map(entry => ({
-          title: entry.API,
-          description: entry.Description,
-          link: entry.Link
+        // requête: (org1 OR org2 OR ...)
+        const query = ORGS.map(o => `"${o}"`).join(" OR ")
+        const url = new URL("https://content.guardianapis.com/search")
+        url.searchParams.set("q", query)
+        url.searchParams.set("order-by", "newest")
+        url.searchParams.set("page-size", "10")
+        url.searchParams.set("show-fields", "trailText") // petit résumé HTML
+        url.searchParams.set("api-key", apiKey)
+
+        const res = await fetch(url.toString(), { cache: 'no-store' })
+        if (!res.ok) {
+          if (res.status === 429) throw new Error("Quota Guardian dépassé, réessaie plus tard.")
+          throw new Error("Erreur HTTP " + res.status)
+        }
+        const data = await res.json()
+
+        // adapte aux champs attendus par ton template (id, title, body)
+        news.value = (data.response?.results || []).slice(0, 4).map((it, i) => ({
+          id: `${it.id}-${i}`,
+          title: it.webTitle,
+          body: stripHtml(it.fields?.trailText) || "Voir l'article",
+          url: it.webUrl
         }))
       } catch (e) {
         error.value = e.message || 'Impossible de charger les actualités.'
@@ -112,11 +139,11 @@ export default {
     }
 
     onMounted(fetchNews)
-
     return { news, loading, error, fetchNews }
   }
 }
 </script>
+
 
 <style>
 /* Hero section */
